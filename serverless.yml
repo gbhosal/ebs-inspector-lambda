@@ -6,34 +6,30 @@ provider:
   runtime: java8
   stage: ${opt:stage, 'test'}
   region: ${opt:region, 'us-east-1'}
-  apiName: newrelic-webhook
   stackName: ebs-inspector-lambda-stack
   profile: ${opt:profile, 'default'}
   memorySize: 256
-  timeout: 30
   logRetentionInDays: 7
   deploymentBucket:
-    name: com.serverless.${self:provider.region}-${opt:awsAccountNo}.deployable
+    name: shs-serverless-deployable-${self:provider.region}-${opt:awsAccountNo}
     serverSideEncryption: AES256
   deploymentPrefix: ${opt:deploymentprefix, 'serverless'}
-  endpointType: regional
-  resourcePolicy:
-  - Effect: Allow
-    Principal: '*'
-    Action: execute-api:Invoke
-    Resource:
-    - execute-api:/*/*/*
   stackTags:
     BusinessUnit: Platform
-    Environment: stage
-    Name: NEW-RELIC
+    Env: stage
+    Name: EBS-Inspector
+    Project: Cost-Management-Solution
     Product: SRD
-    CreatedBy: GBHOSAL
+    CreatedBy: GBHOSAL 
   iamRoleStatements:
   - Effect: Allow
     Action:
-    - ec2:DescribeInstances
-    - ec2:RebootInstances
+    - elasticbeanstalk:DescribeEnvironmentResources
+    - elasticbeanstalk:DescribeEnvironments
+    - autoscaling:DescribeAutoScalingGroups
+    - autoscaling:DescribeTags
+    - cloudformation:DescribeStacks
+    - autoscaling:UpdateAutoScalingGroup
     Resource:
     - '*'
 package:
@@ -42,16 +38,19 @@ functions:
   EBSInspectorLambda:
     name: ebs-inspector-lambda
     description: This lambda code will inspect Elastic Beanstalk environments in the account and will suspend the environments if it falls outside of working hours and bring them back up during working hours
-    handler: org.springframework.cloud.function.adapter.aws.SpringBootApiGatewayRequestHandler
+    handler: com.ebs.inspector.handlers.EbsInspectionHandler
     memorySize: 512
-    timeout: 60
+    timeout: 900
     package:
-      artifact: target/ebs-inpsector-lambda-1.0.0-SNAPSHOT-aws.jar
+      artifact: target/ebs-inspector-lambda-1.0.0-SNAPSHOT-aws.jar
     environment:
-      FUNCTION_NAME: EBSInspectorLambda
-    vpc:
-      securityGroupIds:
-      - ${opt:securityGroupId1}
-      subnetIds:
-      - ${opt:subnetId1}
-      - ${opt:subnetId2}      
+      FUNCTION_NAME: EbsInspectorFunction
+      OFF_BUSINESS_HOUR_WINDOW: 18:00-23:59,00:00-00:30
+      OFF_BUSINESS_HOUR_TIMEZONE: America/Chicago
+      OFF_BUSINESS_DAY_OF_WEEK: SATURDAY,SUNDAY
+    events:
+      - schedule:
+          name: EBS-Inspector-Scheduler-Event
+          description: Invokes the EBS Inspector Lambda
+          rate: rate(1 hour)
+          enabled: true         
