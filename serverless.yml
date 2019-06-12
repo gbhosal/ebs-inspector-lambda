@@ -1,0 +1,57 @@
+service:
+  name: ebs-inspector-lambda
+frameworkVersion: =1.40.0
+provider:
+  name: aws
+  runtime: java8
+  stage: ${opt:stage, 'test'}
+  region: ${opt:region, 'us-east-1'}
+  apiName: newrelic-webhook
+  stackName: ebs-inspector-lambda-stack
+  profile: ${opt:profile, 'default'}
+  memorySize: 256
+  timeout: 30
+  logRetentionInDays: 7
+  deploymentBucket:
+    name: com.serverless.${self:provider.region}-${opt:awsAccountNo}.deployable
+    serverSideEncryption: AES256
+  deploymentPrefix: ${opt:deploymentprefix, 'serverless'}
+  endpointType: regional
+  resourcePolicy:
+  - Effect: Allow
+    Principal: '*'
+    Action: execute-api:Invoke
+    Resource:
+    - execute-api:/*/*/*
+  stackTags:
+    BusinessUnit: Platform
+    Environment: stage
+    Name: NEW-RELIC
+    Product: SRD
+    CreatedBy: GBHOSAL
+  iamRoleStatements:
+  - Effect: Allow
+    Action:
+    - ec2:DescribeInstances
+    - ec2:RebootInstances
+    Resource:
+    - '*'
+package:
+  individually: true
+functions:
+  EBSInspectorLambda:
+    name: ebs-inspector-lambda
+    description: This lambda code will inspect Elastic Beanstalk environments in the account and will suspend the environments if it falls outside of working hours and bring them back up during working hours
+    handler: org.springframework.cloud.function.adapter.aws.SpringBootApiGatewayRequestHandler
+    memorySize: 512
+    timeout: 60
+    package:
+      artifact: target/ebs-inpsector-lambda-1.0.0-SNAPSHOT-aws.jar
+    environment:
+      FUNCTION_NAME: EBSInspectorLambda
+    vpc:
+      securityGroupIds:
+      - ${opt:securityGroupId1}
+      subnetIds:
+      - ${opt:subnetId1}
+      - ${opt:subnetId2}      
