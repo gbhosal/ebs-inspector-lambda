@@ -80,3 +80,7 @@ IAM policy attached to lambda should typically look like as mentioned below.
 
 ### Schedule lambda to execute
 If you want to fully automate, you need to trigger lambda by some means during off working hours and during active working hours so that elastic beanstalk environments can be suspended or put them back in the service depending upon when lambda was execute and the working hours configured.
+
+# Shortcomings
+1. Lambda can only run upto 15 minutes. If you have hundreds of beanstalk environments then this solution may not fit to your need. To achieve the scalability of your need, you may want to group the few environment details in the single message and put that in the SQS by lambda. We can configure another lambda that polls the message from SQS and process them one by one. 
+2. If you have EBS environment whose autoscaling groups `min` or `desired` value is set to greater than one then they will not be restored when environment is put back in the service. Lambda hardcodes them to 1. If you really need to restore them back to their original state then you need to modify lambda code to store its state before modifying it. somewhere example - DynamoDB or ElastiCache and use them while environment is put back in the service.
