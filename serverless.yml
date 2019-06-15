@@ -52,5 +52,5 @@ functions:
       - schedule:
           name: EBS-Inspector-Scheduler-Event
           description: Invokes the EBS Inspector Lambda
-          rate: rate(1 hour)
+          rate: cron(0 0/1 * * ? *)
           enabled: true         

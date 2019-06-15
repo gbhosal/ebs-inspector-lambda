@@ -154,7 +154,7 @@ public class EbsInspectorFunction implements Function<ScheduledEvent, String>{
 		ZonedDateTime targetZonedDateTime = systemDateTime.withZoneSameInstant(getOffBusinessHourTimezone());
 		
 		String offDayOfWeeks = environment.getProperty(Constant.OFF_BUSINESS_DAY_OF_WEEK);
-		if (StringUtils.hasText(offDayOfWeeks)) {
+		if (!StringUtils.hasText(offDayOfWeeks)) {
 			return false;
 		}
 		String[] offDayOfWeek = offDayOfWeeks.split(",");
