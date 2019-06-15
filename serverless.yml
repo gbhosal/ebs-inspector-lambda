@@ -42,7 +42,7 @@ functions:
     memorySize: 512
     timeout: 900
     package:
-      artifact: target/ebs-inspector-lambda-1.0.0-SNAPSHOT-aws.jar
+      artifact: target/ebs-inspector-lambda-1.0.0-aws.jar
     environment:
       FUNCTION_NAME: EbsInspectorFunction
       OFF_BUSINESS_HOUR_WINDOW: 18:00-23:59,00:00-00:30
