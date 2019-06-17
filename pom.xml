@@ -7,7 +7,7 @@
 		<version>2.2.0.M2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.searshc.hs</groupId>
+	<groupId>com.ebs.inspector</groupId>
 	<artifactId>ebs-inspector-lambda</artifactId>
 	<version>2.0.0</version>
 	<name>ebs-inspector-lambda</name>
