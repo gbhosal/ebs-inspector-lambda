@@ -35,16 +35,16 @@ provider:
 package:
   individually: true
 functions:
-  EBSInspectorLambda:
-    name: ebs-inspector-lambda
+  FindAllEbEnvironmentsFunction:
+    name: find-all-eb-environments
     description: This lambda code will inspect Elastic Beanstalk environments in the account and will suspend the environments if it falls outside of working hours and bring them back up during working hours
-    handler: com.ebs.inspector.handlers.EbsInspectionHandler
+    handler: com.ebs.inspector.handlers.FindAllEbEnvironmentsHandler
     memorySize: 512
     timeout: 900
     package:
-      artifact: target/ebs-inspector-lambda-1.0.0-aws.jar
+      artifact: find-all-eb-environments/target/find-all-eb-environments-2.0.0-aws.jar
     environment:
-      FUNCTION_NAME: EbsInspectorFunction
+      FUNCTION_NAME: FindAllEbEnvironmentsFunction
       OFF_BUSINESS_HOUR_WINDOW: 18:00-23:59,00:00-00:30
       OFF_BUSINESS_HOUR_TIMEZONE: America/Chicago
       OFF_BUSINESS_DAY_OF_WEEK: SATURDAY,SUNDAY
