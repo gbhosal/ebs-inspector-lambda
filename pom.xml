@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>com.ebs.inspector</groupId>
 	<artifactId>ebs-inspector-lambda</artifactId>
-	<version>2.0.0</version>
+	<version>2.0.0-SNAPSHOT</version>
 	<name>ebs-inspector-lambda</name>
 	<description>EBS inspector lambda</description>
 	<packaging>pom</packaging>
@@ -100,5 +100,6 @@
 
 	<modules>
     	<module>find-all-eb-environments</module>
-  	</modules>
+    	<module>eb-enabler-disabler</module>
+	</modules>
 </project>

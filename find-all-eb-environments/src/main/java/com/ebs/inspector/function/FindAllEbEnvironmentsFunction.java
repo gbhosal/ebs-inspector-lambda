@@ -1,7 +1,5 @@
 package com.ebs.inspector.function;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -19,7 +17,6 @@ import com.amazonaws.services.elasticbeanstalk.model.EnvironmentDescription;
 import com.amazonaws.services.lambda.runtime.events.ScheduledEvent;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -61,17 +58,13 @@ public class FindAllEbEnvironmentsFunction implements Function<ScheduledEvent, S
 
 	private void sendEnvironmentDetailsToSqs(DescribeEnvironmentsResult describeEnvironmentsResult) {
 		AmazonSQS sqs = AmazonSQSClientBuilder.standard().build();
-		List<SendMessageBatchRequestEntry> entries = new ArrayList<>(100);
 		if (describeEnvironmentsResult == null
 				|| CollectionUtils.isEmpty(describeEnvironmentsResult.getEnvironments())) {
 			return;
 		}
 		describeEnvironmentsResult.getEnvironments().forEach(environmentDescription -> {
-			SendMessageBatchRequestEntry request = new SendMessageBatchRequestEntry();
-			request.setMessageBody(convertToValue(environmentDescription));
-			entries.add(request);
+			sqs.sendMessage(environment.getRequiredProperty(Constant.SQS_QUEUE_URL), convertToValue(environmentDescription));
 		});
-		sqs.sendMessageBatch(environment.getRequiredProperty(Constant.SQS_QUEUE_URL), entries);
 	}
 	
 	private String convertToValue(EnvironmentDescription environmentDescription) {
