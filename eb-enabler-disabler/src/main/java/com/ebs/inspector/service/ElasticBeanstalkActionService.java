@@ -42,6 +42,11 @@ public class ElasticBeanstalkActionService {
 				new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(autoScalingGroupName));
 		LOGGER.info("AutoScalingGroup => AutoScalingGroup configuration = {}", describeAutoScalingGroupsResult);
 
+		if (describeAutoScalingGroupsResult.getAutoScalingGroups().get(0).getMinSize() == 0) {
+			LOGGER.warn("Environment {} is already in the suspended status. No action is required.", environmentDesc);
+			return;
+		}
+		
 		LOGGER.debug("DynamoDB => Saving AutoscalingGroup configuration");
 		UpdateItemRequest updateItemRequest = new UpdateItemRequest()
 				.withTableName(environment.getProperty(Constants.EB_ENV_METADATA_TABLE_NM))

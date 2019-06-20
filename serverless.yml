@@ -14,7 +14,7 @@ provider:
   runtime: java8
   stage: ${opt:stage, 'test'}
   region: ${opt:region, 'us-east-1'}
-  stackName: ebs-inspector-lambda-stack-v2
+  stackName: ${opt:stackName, 'ebs-inspector-lambda-stack'}
   profile: ${opt:profile, 'default'}
   memorySize: 256
   logRetentionInDays: 7
@@ -104,7 +104,7 @@ resources:
           - AttributeName: eb-application-name
             KeyType: HASH
           - AttributeName: eb-environment-name
-            KeyType: HASH
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
