@@ -26,7 +26,6 @@ import com.ebs.inspector.utils.Constants;
 @Component
 public class ElasticBeanstalkActionService {
 	private static Logger LOGGER = LoggerFactory.getLogger(ElasticBeanstalkActionService.class);
-	private static final String _1 = "1";
 	@Autowired
 	private Environment environment;
 
@@ -38,9 +37,7 @@ public class ElasticBeanstalkActionService {
 		final AmazonDynamoDB dynamoDbClient = AmazonDynamoDBClientBuilder.defaultClient();
 		final AmazonAutoScaling autoScalingClient = AmazonAutoScalingClientBuilder.standard().build();
 
-		DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult = autoScalingClient.describeAutoScalingGroups(
-				new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(autoScalingGroupName));
-		LOGGER.info("AutoScalingGroup => AutoScalingGroup configuration = {}", describeAutoScalingGroupsResult);
+		DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult = getAutoScalingGroupResult(autoScalingGroupName);
 
 		if (describeAutoScalingGroupsResult.getAutoScalingGroups().get(0).getMinSize() == 0) {
 			LOGGER.warn("Environment {} is already in the suspended status. No action is required.", environmentDesc);
@@ -73,8 +70,23 @@ public class ElasticBeanstalkActionService {
 		LOGGER.info("UpdateAutoScalingGroupResult = {}", updateAutoScalingGroupResult);
 	}
 
+	private DescribeAutoScalingGroupsResult getAutoScalingGroupResult(String autoScalingGroupName) {
+		final AmazonAutoScaling autoScalingClient = AmazonAutoScalingClientBuilder.standard().build();
+		
+		DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult = autoScalingClient.describeAutoScalingGroups(
+				new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(autoScalingGroupName));
+		LOGGER.info("AutoScalingGroup => AutoScalingGroup configuration = {}", describeAutoScalingGroupsResult);
+		return describeAutoScalingGroupsResult;
+	}
+
 	public void resumeEnvironment(EnvironmentDescription environmentDesc, String autoScalingGroupName) {
 		LOGGER.info("Resuming environment = {}", environmentDesc.getEnvironmentName());
+		DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult = getAutoScalingGroupResult(autoScalingGroupName);
+		if (describeAutoScalingGroupsResult.getAutoScalingGroups().get(0).getMinSize() > 0) {
+			LOGGER.info("Environment {} already have atleast 1 EC2 in the AutoScaling group. No action is required.",
+					environmentDesc);
+			return;
+		}
 
 		final AmazonDynamoDB dynamoDbClient = AmazonDynamoDBClientBuilder.defaultClient();
 		final AmazonAutoScaling autoScalingClient = AmazonAutoScalingClientBuilder.standard().build();
@@ -90,11 +102,11 @@ public class ElasticBeanstalkActionService {
 		UpdateAutoScalingGroupRequest updateAutoScalingGroupRequest = new UpdateAutoScalingGroupRequest()
 				.withAutoScalingGroupName(autoScalingGroupName)
 				.withMinSize(new Integer(itemResult.getItem()
-						.getOrDefault(Constants.EB_AUTOSCALING_MIN_CAPACITY, new AttributeValue(_1)).getN()))
+						.get(Constants.EB_AUTOSCALING_MIN_CAPACITY).getN()))
 				.withDesiredCapacity(new Integer(itemResult.getItem()
-						.getOrDefault(Constants.EB_AUTOSCALING_DESIRED_CAPACITY, new AttributeValue(_1)).getN()));
+						.get(Constants.EB_AUTOSCALING_DESIRED_CAPACITY).getN()));
 		
-		LOGGER.info("UpdateAutoScalingGroupRequest = {}", updateAutoScalingGroupRequest);
+		LOGGER.info("UpdateAutoScalingGroupRequest = {}", updateAutoScalingGroupRequest);				
 		UpdateAutoScalingGroupResult updateAutoScalingGroupResult = autoScalingClient
 				.updateAutoScalingGroup(updateAutoScalingGroupRequest);
 		LOGGER.info("UpdateAutoScalingGroupResult = {}", updateAutoScalingGroupResult);

@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ import com.amazonaws.services.autoscaling.AmazonAutoScalingClientBuilder;
 import com.amazonaws.services.autoscaling.model.DescribeTagsRequest;
 import com.amazonaws.services.autoscaling.model.DescribeTagsResult;
 import com.amazonaws.services.autoscaling.model.Filter;
+import com.amazonaws.services.autoscaling.model.TagDescription;
 import com.amazonaws.services.elasticbeanstalk.AWSElasticBeanstalk;
 import com.amazonaws.services.elasticbeanstalk.AWSElasticBeanstalkClientBuilder;
 import com.amazonaws.services.elasticbeanstalk.model.DescribeEnvironmentResourcesRequest;
@@ -34,21 +36,32 @@ import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.ebs.inspector.exception.InvalidTimeWindowException;
 import com.ebs.inspector.service.ElasticBeanstalkActionService;
 import com.ebs.inspector.utils.Constants;
+import com.ebs.inspector.vo.Tag;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Ganesh Bhosale
  */
 @Component("EbEnablerDisablerFunction")
-public class EbEnablerDisablerFunction implements Function<SQSEvent, String> {
+public class EbEnablerDisablerFunction implements Function<SQSEvent, String>, InitializingBean {
 	private static Logger LOGGER = LoggerFactory.getLogger(EbEnablerDisablerFunction.class);
 	@Autowired
 	private ObjectMapper mapper;
 	@Autowired
 	private Environment environment;
+	private List<Tag> tagFilter; 
 	@Autowired
 	private ElasticBeanstalkActionService elasticBeanstalkActionService;
 
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		if (!StringUtils.isEmpty(environment.getProperty("TAG_FILTER"))) {
+			tagFilter = convertToValue(environment.getProperty("TAG_FILTER"), new TypeReference<List<Tag>>() {});
+			LOGGER.info("Tag Filter = {}", tagFilter);
+		}
+	}
+	
 	/**
 	 * Entry point of function business logic
 	 */
@@ -93,22 +106,27 @@ public class EbEnablerDisablerFunction implements Function<SQSEvent, String> {
 
 		if (offBusinessHours) {
 			elasticBeanstalkActionService.suspendEnvironment(environment, autoScalingGroupName);
-		// Grey Health represents "No Data" Health Status, which is equivalent to logical "Suspend"
-		} else if (Constants.ENV_HEALTH_GREY.equalsIgnoreCase(environment.getHealth())) {
+		// Verify if environment is already running
+		} else if (!Constants.ENV_HEALTH_GREEN.equals(environment.getHealth())) {
 			elasticBeanstalkActionService.resumeEnvironment(environment, autoScalingGroupName);
 		}
 	}
 
 	private boolean autoSuspensionEnabled(DescribeTagsResult describeTagsResult) {
-		if (describeTagsResult == null || CollectionUtils.isEmpty(describeTagsResult.getTags())) {
+		if (CollectionUtils.isEmpty(tagFilter)) {
+			return true;
+		} else if (describeTagsResult == null || CollectionUtils.isEmpty(describeTagsResult.getTags())) {
 			return false;
 		}
-		return describeTagsResult.getTags().stream()
-				.filter(x -> Constants.CONSTANTS_AUTO_SUSPEND.equalsIgnoreCase(x.getKey())
-						&& Constants.CONSTANTS_TRUE.equalsIgnoreCase(x.getValue()))
+		return describeTagsResult.getTags().stream().filter(tagDescription -> this.isTagValid(tagDescription))
 				.findFirst().isPresent();
 	}
-
+	
+	private boolean isTagValid(TagDescription tagDescription) {
+		return tagFilter.stream().filter(tag -> tag.getName().equals(tagDescription.getKey())
+				&& tag.getValue().equals(tagDescription.getValue())).findFirst().isPresent();
+	}
+	
 	private boolean offBusinessHours() {
 		String offBusinessHourWindow = environment.getProperty(Constants.OFF_BUSINESS_HOUR_WINDOW);
 		if (!StringUtils.hasText(offBusinessHourWindow)) {
@@ -167,6 +185,14 @@ public class EbEnablerDisablerFunction implements Function<SQSEvent, String> {
 	private <T> T convertToValue(String content, Class<T> clazz) {
 		try {
 			return mapper.readValue(content, clazz);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private <T> T convertToValue(String content, TypeReference<T> type) {
+		try {
+			return mapper.readValue(content, type);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

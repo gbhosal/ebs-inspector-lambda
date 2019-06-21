@@ -36,13 +36,25 @@ provider:
     - autoscaling:DescribeAutoScalingGroups
     - autoscaling:DescribeTags
     - cloudformation:DescribeStacks
+    Resource:
+    - '*'
+  - Effect: Allow
+    Action:
     - autoscaling:UpdateAutoScalingGroup
+    Resource:
+    - '*'
+  - Effect: Allow
+    Action:
     - sqs:SendMessage
+    Resource:
+    - "#{EbEnablerDisablerQueue.Arn}"
+  - Effect: Allow
+    Action:
     - dynamodb:GetItem
     - dynamodb:PutItem
     - dynamodb:UpdateItem
     Resource:
-    - '*'
+    - "#{EbEnvironmentMetadata.Arn}"
 
 package:
   individually: true
@@ -61,19 +73,20 @@ functions:
       SQS_QUEUE_URL:  "#{EbEnablerDisablerQueue}"
     events:
       - schedule:
-          name: EBS-Inspector-Scheduler-Event-V2
-          description: Invokes the EBS Inspector Lambda
-          rate: cron(2 23 * * ? *)
+          name: EBS-Inspector-Suspend-Event
+          description: Trigger that would suspends the elastic beanstalk environment
+          rate: cron(2 23 ? * MON-FRI *)
           enabled: true
       - schedule:
-          name: EBS-Inspector-Scheduler-Event-V3
-          description: Invokes the EBS Inspector Lambda
-          rate: cron(32 5 * * ? *)
+          name: EBS-Inspector-Resume-Event
+          description: Trigger that would resume elastic beanstalk environment
+          rate: cron(32 5 ? * MON-FRI *)
           enabled: true
   EbEnablerDisablerFunction:
     name: eb-enabler-disabler
     description: Polls the SQS messages which has Elastic Beanstalk environment details, and processes it to suspend or resume the Elastic Beanstalk environment as per off business hours configured
     handler: com.ebs.inspector.handlers.EbEnablerDisablerHandler
+    reservedConcurrency: 2
     memorySize: 512
     timeout: 900
     package:
@@ -84,10 +97,11 @@ functions:
       OFF_BUSINESS_HOUR_TIMEZONE: America/Chicago
       OFF_BUSINESS_DAY_OF_WEEK: SATURDAY,SUNDAY
       EB_ENV_METADATA_TABLE_NM: ${self:custom.ebEnvironmentMetadataTableName}
+      TAG_FILTER: '[{"name": "AutoSuspend","value": "true"}]'
     events:
       - sqs:
           arn: "arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:${self:custom.ebEnablerDisablerQueue}"
-          batchSize: 10
+          batchSize: 5
 
 resources:
   Resources:
@@ -106,8 +120,8 @@ resources:
           - AttributeName: eb-environment-name
             KeyType: RANGE
         ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+          ReadCapacityUnits: 10
+          WriteCapacityUnits: 10
     EbEnablerDisablerQueue:
       Type: AWS::SQS::Queue
       Properties:

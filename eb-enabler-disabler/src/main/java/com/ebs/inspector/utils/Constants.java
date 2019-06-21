@@ -7,6 +7,7 @@ public final class Constants {
 	public static final String HYPEN = "-";
 	public static final String COMMA = ",";
 	public static final String ENV_HEALTH_GREY = "Grey";
+	public static final String ENV_HEALTH_GREEN = "Green";
 	public static final String OFF_BUSINESS_HOUR_TIMEZONE = "OFF_BUSINESS_HOUR_TIMEZONE";
 	public static final String OFF_BUSINESS_HOUR_WINDOW = "OFF_BUSINESS_HOUR_WINDOW";
 	public static final String OFF_BUSINESS_DAY_OF_WEEK = "OFF_BUSINESS_DAY_OF_WEEK";
