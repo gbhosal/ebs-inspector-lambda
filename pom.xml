@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -8,69 +7,18 @@
 		<version>2.2.0.M2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.searshc.hs</groupId>
+	<groupId>com.ebs.inspector</groupId>
 	<artifactId>ebs-inspector-lambda</artifactId>
-	<version>1.0.0</version>
+	<version>2.0.0-SNAPSHOT</version>
 	<name>ebs-inspector-lambda</name>
 	<description>EBS inspector lambda</description>
+	<packaging>pom</packaging>
 
 	<properties>
 		<java.version>1.8</java.version>
-		<aws-lambda-events.version>2.0.2</aws-lambda-events.version>
+		<aws-lambda-events.version>2.2.6</aws-lambda-events.version>
 		<spring-cloud.version>Greenwich.BUILD-SNAPSHOT</spring-cloud.version>
 	</properties>
-
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-function-context</artifactId>
-		</dependency>
-		
-		<!-- AWS target runtime -->
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-function-adapter-aws</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-lambda-java-events</artifactId>
-			<version>${aws-lambda-events.version}</version>
-		</dependency>
-		<dependency>
-		    <groupId>com.amazonaws</groupId>
-		    <artifactId>aws-java-sdk-autoscaling</artifactId>
-		</dependency>
-		<dependency>
-		    <groupId>com.amazonaws</groupId>
-		    <artifactId>aws-java-sdk-elasticbeanstalk</artifactId>
-		</dependency>		
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-lambda-java-core</artifactId>
-			<version>1.1.0</version>
-			<scope>provided</scope>
-		</dependency>
-		
-		<!-- Test -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		
-		<!-- Dev Tools -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<optional>true</optional>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-configuration-processor</artifactId>
-			<optional>true</optional>
-		</dependency>
-	</dependencies>
 
 	<dependencyManagement>
 		<dependencies>
@@ -80,40 +28,42 @@
 				<version>${spring-cloud.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
-			</dependency>
+			</dependency>			
 		</dependencies>
 	</dependencyManagement>
-
+	
 	<build>
-	    <plugins>
-	        <plugin>
-	            <groupId>org.apache.maven.plugins</groupId>
-	            <artifactId>maven-deploy-plugin</artifactId>
-	            <configuration>
-	                <skip>true</skip>
-	            </configuration>
-	        </plugin>
-	        <plugin>
-	            <groupId>org.springframework.boot</groupId>
-	            <artifactId>spring-boot-maven-plugin</artifactId>
-	            <dependencies>
-	                <dependency>
-	                    <groupId>org.springframework.boot.experimental</groupId>
-	                    <artifactId>spring-boot-thin-layout</artifactId>
-	                    <version>1.0.10.RELEASE</version>
-	                </dependency>
-	            </dependencies>
-	        </plugin>
-	        <plugin>
-	            <groupId>org.apache.maven.plugins</groupId>
-	            <artifactId>maven-shade-plugin</artifactId>
-	            <configuration>
-	                <createDependencyReducedPom>false</createDependencyReducedPom>
-	                <shadedArtifactAttached>true</shadedArtifactAttached>
-	                <shadedClassifierName>aws</shadedClassifierName>
-	            </configuration>
-	        </plugin>
-	    </plugins>
+		<pluginManagement>
+		    <plugins>
+		        <plugin>
+		            <groupId>org.apache.maven.plugins</groupId>
+		            <artifactId>maven-deploy-plugin</artifactId>
+		            <configuration>
+		                <skip>true</skip>
+		            </configuration>
+		        </plugin>
+		        <plugin>
+		            <groupId>org.springframework.boot</groupId>
+		            <artifactId>spring-boot-maven-plugin</artifactId>
+		            <dependencies>
+		                <dependency>
+		                    <groupId>org.springframework.boot.experimental</groupId>
+		                    <artifactId>spring-boot-thin-layout</artifactId>
+		                    <version>1.0.10.RELEASE</version>
+		                </dependency>
+		            </dependencies>
+		        </plugin>
+		        <plugin>
+		            <groupId>org.apache.maven.plugins</groupId>
+		            <artifactId>maven-shade-plugin</artifactId>
+		            <configuration>
+		                <createDependencyReducedPom>false</createDependencyReducedPom>
+		                <shadedArtifactAttached>true</shadedArtifactAttached>
+		                <shadedClassifierName>aws</shadedClassifierName>
+		            </configuration>
+		        </plugin>
+		    </plugins>
+	    </pluginManagement>
 	</build>
 
 	<repositories>
@@ -131,6 +81,7 @@
 			<url>https://repo.spring.io/milestone</url>
 		</repository>
 	</repositories>
+	
 	<pluginRepositories>
 		<pluginRepository>
 			<id>spring-snapshots</id>
@@ -147,4 +98,8 @@
 		</pluginRepository>
 	</pluginRepositories>
 
+	<modules>
+    	<module>find-all-eb-environments</module>
+    	<module>eb-enabler-disabler</module>
+	</modules>
 </project>

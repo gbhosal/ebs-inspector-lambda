@@ -1,0 +1,23 @@
+{
+  "name": "ebs-inspector-lambda",
+  "version": "1.0.0",
+  "description": "This lambda code will inspect Elastic Beanstalk environments in the account and will suspend the environments if it falls outside of working hours and bring them back up during working hours, resulting significant saving to company.",
+  "main": "index.js",
+  "dependencies": {
+    "serverless-pseudo-parameters": "^2.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gbhosal/ebs-inspector-lambda.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gbhosal/ebs-inspector-lambda/issues"
+  },
+  "homepage": "https://github.com/gbhosal/ebs-inspector-lambda#readme"
+}

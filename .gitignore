@@ -5,3 +5,6 @@
 /.factorypath
 /.project
 /.serverless/
+/.springBeans
+/node_modules/
+/package-lock.json

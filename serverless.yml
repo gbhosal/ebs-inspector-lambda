@@ -1,17 +1,25 @@
 service:
   name: ebs-inspector-lambda
 frameworkVersion: =1.40.0
+
+custom:
+  ebEnvironmentMetadataTableName: ${opt:ebEnvironmentMetadataTableName, 'eb-environment-metadata'}
+  ebEnablerDisablerQueue: ${opt:ebEnablerDisablerQueue, 'eb-enabler-disabler-queue'}
+
+plugins:
+  - serverless-pseudo-parameters
+
 provider:
   name: aws
   runtime: java8
   stage: ${opt:stage, 'test'}
   region: ${opt:region, 'us-east-1'}
-  stackName: ebs-inspector-lambda-stack
+  stackName: ${opt:stackName, 'ebs-inspector-lambda-stack'}
   profile: ${opt:profile, 'default'}
   memorySize: 256
   logRetentionInDays: 7
   deploymentBucket:
-    name: shs-serverless-deployable-${self:provider.region}-${opt:awsAccountNo}
+    name: ${opt:deploymentBucket}
     serverSideEncryption: AES256
   deploymentPrefix: ${opt:deploymentprefix, 'serverless'}
   stackTags:
@@ -19,8 +27,7 @@ provider:
     Env: stage
     Name: EBS-Inspector
     Project: Cost-Management-Solution
-    Product: SRD
-    CreatedBy: GBHOSAL 
+    CreatedBy: GBHOSAL
   iamRoleStatements:
   - Effect: Allow
     Action:
@@ -29,28 +36,94 @@ provider:
     - autoscaling:DescribeAutoScalingGroups
     - autoscaling:DescribeTags
     - cloudformation:DescribeStacks
+    Resource:
+    - '*'
+  - Effect: Allow
+    Action:
     - autoscaling:UpdateAutoScalingGroup
     Resource:
     - '*'
+  - Effect: Allow
+    Action:
+    - sqs:SendMessage
+    Resource:
+    - "#{EbEnablerDisablerQueue.Arn}"
+  - Effect: Allow
+    Action:
+    - dynamodb:GetItem
+    - dynamodb:PutItem
+    - dynamodb:UpdateItem
+    Resource:
+    - "#{EbEnvironmentMetadata.Arn}"
+
 package:
   individually: true
+
 functions:
-  EBSInspectorLambda:
-    name: ebs-inspector-lambda
-    description: This lambda code will inspect Elastic Beanstalk environments in the account and will suspend the environments if it falls outside of working hours and bring them back up during working hours
-    handler: com.ebs.inspector.handlers.EbsInspectionHandler
+  FindAllEbEnvironmentsFunction:
+    name: find-all-eb-environments
+    description: Find all Elastic Beanstalk environment details and send it to SQS to be consumed by subsequent lambda code
+    handler: com.ebs.inspector.handlers.FindAllEbEnvironmentsHandler
     memorySize: 512
     timeout: 900
     package:
-      artifact: target/ebs-inspector-lambda-1.0.0-aws.jar
+      artifact: find-all-eb-environments/target/find-all-eb-environments-2.0.0-SNAPSHOT-aws.jar
     environment:
-      FUNCTION_NAME: EbsInspectorFunction
+      FUNCTION_NAME: FindAllEbEnvironmentsFunction
+      SQS_QUEUE_URL:  "#{EbEnablerDisablerQueue}"
+    events:
+      - schedule:
+          name: EBS-Inspector-Suspend-Event
+          description: Trigger that would suspends the elastic beanstalk environment
+          rate: cron(2 23 ? * MON-FRI *)
+          enabled: true
+      - schedule:
+          name: EBS-Inspector-Resume-Event
+          description: Trigger that would resume elastic beanstalk environment
+          rate: cron(32 5 ? * MON-FRI *)
+          enabled: true
+  EbEnablerDisablerFunction:
+    name: eb-enabler-disabler
+    description: Polls the SQS messages which has Elastic Beanstalk environment details, and processes it to suspend or resume the Elastic Beanstalk environment as per off business hours configured
+    handler: com.ebs.inspector.handlers.EbEnablerDisablerHandler
+    reservedConcurrency: 2
+    memorySize: 512
+    timeout: 900
+    package:
+      artifact: eb-enabler-disabler/target/eb-enabler-disabler-2.0.0-SNAPSHOT-aws.jar
+    environment:
+      FUNCTION_NAME: EbEnablerDisablerFunction
       OFF_BUSINESS_HOUR_WINDOW: 18:00-23:59,00:00-00:30
       OFF_BUSINESS_HOUR_TIMEZONE: America/Chicago
       OFF_BUSINESS_DAY_OF_WEEK: SATURDAY,SUNDAY
+      EB_ENV_METADATA_TABLE_NM: ${self:custom.ebEnvironmentMetadataTableName}
+      TAG_FILTER: '[{"name": "AutoSuspend","value": "true"}]'
     events:
-      - schedule:
-          name: EBS-Inspector-Scheduler-Event
-          description: Invokes the EBS Inspector Lambda
-          rate: cron(0 0/1 * * ? *)
-          enabled: true         
+      - sqs:
+          arn: "arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:${self:custom.ebEnablerDisablerQueue}"
+          batchSize: 5
+
+resources:
+  Resources:
+    EbEnvironmentMetadata:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.ebEnvironmentMetadataTableName}
+        AttributeDefinitions:
+          - AttributeName: eb-application-name
+            AttributeType: S
+          - AttributeName: eb-environment-name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: eb-application-name
+            KeyType: HASH
+          - AttributeName: eb-environment-name
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 10
+          WriteCapacityUnits: 10
+    EbEnablerDisablerQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.ebEnablerDisablerQueue}
+        VisibilityTimeout: 960
