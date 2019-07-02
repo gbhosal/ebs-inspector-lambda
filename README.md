@@ -54,12 +54,12 @@ In summary, following environment variables are required.
 ## Deployment
 Easiest way to deploy entire resources stack is using [serverless.yml](serverless.yml). This is the configuration file required by [`serverless.com`](http://serverless.com) framework. If you are not familiar with this framework, you have been doing heavy-lifting all by yourself which isn't necessary.
 
-Simply execute below command and it would deploy the stack of resources. 
-Note - You may need to modify the tags as per your need. Parameter `awsAccountNo` is required to pass because it is part of S3 bucket I  configured. You can simply choose the S3 bucket of your choice in serverless.yml and if it is static, you don't have to pass anything as parameter. I prefer to use some pattern so I can maintain just one copy of serverless.yml irrespective of the environments that I am deploying it into.
+Simply execute below command and it would deploy the stack of resources, so easy.
+
 ```
-$serverless deploy --awsAccountNo <Your AWS ACCOUNT NO>
+$serverless deploy --deploymentBucket <S3 bucket name to stage deployable artifacts>
 ```
-If you want to create the resources using AWS Console then you need to know the below details.
+If you want to create the resources using AWS Console then you need to know the below details and some you have to decode it from serverless.yml. Being adopter of best practices, I don't create AWS resources using AWS console.
 
 ### Platform
 As stated earlier, this lambda is written on Java 8 so choose `java8` as runtime for the lambda function. You don't have run lambda in the one of your VPC. It wouldn't make difference whether you run it in the VPC or No VPC because all REST API calls are over internet. If you still chose to run it within VPC, ensure that selected subnet have enough IPs available because one of those IP addresses from private IP pool of subnet will be used by lambda.
